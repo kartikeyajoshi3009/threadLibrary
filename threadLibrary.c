@@ -2,6 +2,13 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
+threadLib initializeThreadLibrary(){
+    threadLib tL;
+    tL.threadCount=0;
+    tL.nextThreadId=1;
+    tL.threads=NULL;
+    return tL;
+}
 int createThread(threadLib* tL, void (*function)(void*), void* arg){
     int id=tL->nextThreadId++;
     tL->threads=(threadControlBlock*)realloc(tL->threads, sizeof(threadControlBlock) * (tL->threadCount+1));
