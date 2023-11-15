@@ -22,7 +22,27 @@ int createThread(threadLib* tL, void (*function)(void*), void* arg){
         return -1;
     }
 }
-void deleteThread(threadLib* tL, int threadId){}
+void deleteThread(threadLib* tL, int threadId){
+    int index=-1;
+    for(int i=0; i<tL->threadCount; i++){
+        if(tL->threads[i].id==threadId){
+            index=i;
+            break;
+        }
+    }
+    if(index!=-1){
+        threadControlBlock* tcb=&(tL->threads[index]);
+        pthread_join(tcb->thread, NULL);
+        tcb->status=TERMINATED;
+        pthread_mutex_destroy(&(tcb->mutex));
+        pthread_cond_destroy(&(tcb->condition));
+        for(int i=index; i<tL->threadCount-1; i++){
+            tL->threads[i]=tL->threads[i+1];
+        }
+        tL->threadCount--;
+        tL->threads=(threadControlBlock*)realloc(tL->threads, sizeof(threadControlBlock) * tL->threadCount);
+    }
+}
 void suspendThread(threadLib* tL, int threadId){
     for(int i=0; i<tL->threadCount; i++){
         if(tL->threads[i].id==threadId){
@@ -55,7 +75,20 @@ void runThread(threadLib* tL, int threadId){
         }
     }
 }
-void sleepThread(threadLib* tL, int threadId, int t){}
+void sleepThread(threadLib* tL, int threadId, int t){
+    for(int i=0; i<tL->threadCount; i++){
+        if(tL->threads[i].id==threadId){
+            pthread_mutex_lock(&(tL->threads[i].mutex));
+            tL->threads[i].status=SUSPENDED;
+            pthread_mutex_unlock(&(tL->threads[i].mutex));
+            usleep(t*1000);
+            pthread_mutex_lock(&(tL->threads[i].mutex));
+            tL->threads[i].status=READY;
+            pthread_mutex_unlock(&(tL->threads[i].mutex));
+            break;
+        }
+    }
+}
 void showThreadStatus(threadLib* tL, int threadId){
     for(int i=0; i<tL->threadCount; i++){
         if(tL->threads[i].id==threadId){
